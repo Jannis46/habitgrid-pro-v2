@@ -330,7 +330,7 @@ export function Dashboard() {
           </div>
         )}
 
-        <div className="grid gap-4">
+        <div className="grid min-w-0 gap-4">
           {active.map((habit) => (
             <HabitCard
               key={habit.id}
@@ -495,7 +495,13 @@ const HabitCard = memo(function HabitCard({
   const pick = useCallback((day: DayKey) => onPickDay(habit, day), [onPickDay, habit])
 
   return (
-    <article className="card p-4">
+    /*
+     * `min-w-0` ist hier nicht kosmetisch: Grid-Elemente haben `min-width: auto` und
+     * lassen sich von breitem Inhalt aufblähen. Ohne das wuchs die Karte auf die Breite
+     * der Jahresmatrix (795 px) und sprengte auf dem Telefon die Seite, statt den
+     * Scroll-Container scrollen zu lassen.
+     */
+    <article className="card min-w-0 p-4">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <span
@@ -537,7 +543,10 @@ const HabitCard = memo(function HabitCard({
         </div>
       </header>
 
-      <dl className="mt-4 grid grid-cols-3 gap-3 text-center">
+      <dl
+        className="mt-4 grid grid-cols-3 gap-2 rounded-xl py-3 text-center sm:gap-3"
+        style={{ background: 'var(--surface-2)' }}
+      >
         <div>
           <dt className="text-xs" style={{ color: 'var(--muted)' }}>
             Aktuelle Serie

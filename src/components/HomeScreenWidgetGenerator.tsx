@@ -282,26 +282,39 @@ export function WidgetBanner() {
   const [hidden, setHidden] = useState(() => localStorage.getItem('habitgrid.widget.banner') === '1')
   if (hidden) return null
   return (
-    <aside className="no-print card mt-6 flex flex-wrap items-center gap-3 p-4">
-      <Smartphone size={20} className="shrink-0" style={{ color: 'var(--accent)' }} aria-hidden />
-      <p className="min-w-0 flex-1 text-sm">
-        <strong>Home-Screen-Widget einrichten</strong>
-        <span className="block" style={{ color: 'var(--muted)' }}>
-          Serie und Tagesfortschritt direkt auf dem Startbildschirm.
-        </span>
-      </p>
-      <a href="#/widget" className="btn btn-primary shrink-0">
-        Einrichten
-      </a>
-      <button
-        className="btn btn-ghost btn-icon shrink-0"
-        onClick={() => {
-          localStorage.setItem('habitgrid.widget.banner', '1')
-          setHidden(true)
-        }}
-      >
-        Später
-      </button>
+    /*
+     * Auf dem Telefon untereinander, ab sm nebeneinander. Zuvor lagen Text und Knöpfe
+     * in einer umbrechenden Zeile — bei schmaler Breite schoben sie sich ineinander.
+     */
+    <aside className="no-print card mt-6 flex flex-col items-start justify-between gap-3 p-4 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 items-start gap-3">
+        <Smartphone
+          size={20}
+          className="mt-0.5 shrink-0"
+          style={{ color: 'var(--accent)' }}
+          aria-hidden
+        />
+        <p className="min-w-0 text-sm">
+          <strong>Home-Screen-Widget einrichten</strong>
+          <span className="mt-0.5 block" style={{ color: 'var(--muted)' }}>
+            Serie und Tagesfortschritt direkt auf dem Startbildschirm.
+          </span>
+        </p>
+      </div>
+      <div className="flex w-full shrink-0 gap-2 sm:w-auto">
+        <a href="#/widget" className="btn btn-primary flex-1 sm:flex-none">
+          Einrichten
+        </a>
+        <button
+          className="btn btn-ghost flex-1 sm:flex-none"
+          onClick={() => {
+            localStorage.setItem('habitgrid.widget.banner', '1')
+            setHidden(true)
+          }}
+        >
+          Später
+        </button>
+      </div>
     </aside>
   )
 }
