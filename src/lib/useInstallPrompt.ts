@@ -39,9 +39,11 @@ export function useInstallPrompt() {
     // iOS meldet den Vollbildmodus über eine eigene, nicht standardisierte Eigenschaft
     (navigator as Navigator & { standalone?: boolean }).standalone === true
 
+  // `navigator.platform` ist abgekündigt; iPadOS ab 13 meldet sich ohnehin als Mac,
+  // erkennbar nur an den Touchpunkten.
   const isIos =
     /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
 
   const install = async (): Promise<boolean> => {
     if (!deferred) return false

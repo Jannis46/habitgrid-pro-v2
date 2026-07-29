@@ -33,22 +33,42 @@ export default defineConfig(({ mode }) => {
           'sitemap.xml',
         ],
         manifest: {
+          /*
+           * `id` legt die dauerhafte Identität der App fest. Chrome empfiehlt, ihn zu
+           * setzen und danach nie mehr zu ändern — eine Änderung gilt als neue App und
+           * die bereits installierte bleibt unabhängig davon bestehen.
+           */
+          id: 'com.habitgrid.pro',
           name: 'HabitGrid Pro — Habit Tracker ohne Abo',
           short_name: 'HabitGrid',
           description:
             'Minimalistischer Habit Tracker mit Heatmap-Matrix, Ruhetagen und Offline-Modus. Einmal kaufen, dauerhaft nutzen.',
           lang: 'de',
+          dir: 'ltr',
+          /*
+           * start_url und scope folgen dem Basispfad. Ein fest verdrahtetes '/' würde
+           * bei einem Unterverzeichnis-Deployment außerhalb des Scopes liegen — die App
+           * wäre dann gar nicht installierbar.
+           */
           start_url: base,
           scope: base,
           display: 'standalone',
+          display_override: ['standalone', 'minimal-ui'],
           orientation: 'portrait',
           // Splash-Screen der installierten App im hellen Grundton der Oberfläche
           background_color: '#f9fafb',
           theme_color: '#f9fafb',
-          categories: ['productivity', 'lifestyle', 'health'],
+          categories: ['lifestyle', 'productivity', 'health'],
+          // Es gibt keine native Entsprechung — Android soll keine anbieten
+          prefer_related_applications: false,
+          /*
+           * Getrennte Einträge für `any` und `maskable` statt eines kombinierten
+           * "any maskable": Ein maskierbares Icon trägt Sicherheitsabstand für den
+           * Zuschnitt. Als `any` verwendet wirkt es sichtbar zu klein im Rahmen.
+           */
           icons: [
-            { src: `${base}icons/icon-192.png`, sizes: '192x192', type: 'image/png' },
-            { src: `${base}icons/icon-512.png`, sizes: '512x512', type: 'image/png' },
+            { src: `${base}icons/icon-192.png`, sizes: '192x192', type: 'image/png', purpose: 'any' },
+            { src: `${base}icons/icon-512.png`, sizes: '512x512', type: 'image/png', purpose: 'any' },
             {
               src: `${base}icons/icon-maskable-512.png`,
               sizes: '512x512',

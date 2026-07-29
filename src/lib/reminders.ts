@@ -53,8 +53,9 @@ export type NotificationState =
 
 const isIos = () =>
   /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-  // iPadOS meldet sich seit Version 13 als Mac; der Touchpunkt verrät das Tablet
-  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  // iPadOS meldet sich seit Version 13 als Mac; der Touchpunkt verrät das Tablet.
+  // `navigator.platform` ist abgekündigt — die Kennung kommt aus dem User-Agent.
+  (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1)
 
 export const isStandalone = () =>
   window.matchMedia('(display-mode: standalone)').matches ||
