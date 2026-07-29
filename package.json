@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run icons && tsc --noEmit && vite build",
+    "build": "npm run icons && npm run check:sw && tsc --noEmit && vite build",
+    "check:sw": "node --check public/reminders-sw.js",
     "preview": "vite preview",
     "check": "vitest run",
     "icons": "node scripts/gen-icons.mjs",

@@ -7,6 +7,7 @@ import {
   Pencil,
   Plus,
   Printer,
+  Settings,
   Trash2,
   Upload,
 } from 'lucide-react'
@@ -220,6 +221,14 @@ export function Dashboard() {
             >
               <Printer size={16} aria-hidden /> Drucken
             </button>
+            <a
+              href="#/einstellungen"
+              className="btn btn-ghost btn-icon"
+              title="Einstellungen und Benachrichtigungen"
+            >
+              <Settings size={16} aria-hidden />
+              <span className="sr-only">Einstellungen</span>
+            </a>
             <button className="btn btn-ghost btn-icon" onClick={signOut} title="Abmelden">
               <LogOut size={16} aria-hidden />
               <span className="hidden sm:inline">Abmelden</span>

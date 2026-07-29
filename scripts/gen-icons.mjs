@@ -193,6 +193,33 @@ function drawIcon(size, { padding = 0.06, radius = 0.22, background = true } = {
 
 /* --------------------------------- Ausgabe --------------------------------- */
 
+/**
+ * Badge für Benachrichtigungen: Android zeigt es einfarbig in der Statusleiste und
+ * wertet nur den Alphakanal aus. Deshalb weiße Form auf durchsichtigem Grund — ein
+ * farbiges Icon erschiene dort als grauer Klecks.
+ */
+function drawBadge(size) {
+  const px = Buffer.alloc(size * size * 4)
+  const scale = size / 32
+  const SS = 3
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let hits = 0
+      for (let sy = 0; sy < SS; sy++) {
+        for (let sx = 0; sx < SS; sx++) {
+          const lx = (x + (sx + 0.5) / SS) / scale
+          const ly = (y + (sy + 0.5) / SS) / scale
+          if (Object.values(FACETS).some((f) => inside(f, lx, ly))) hits++
+        }
+      }
+      const i = (y * size + x) * 4
+      px[i] = px[i + 1] = px[i + 2] = 255
+      px[i + 3] = Math.round((hits / (SS * SS)) * 255)
+    }
+  }
+  return encodePng(size, px)
+}
+
 await mkdir(join('public', 'icons'), { recursive: true })
 
 const files = [
@@ -200,6 +227,7 @@ const files = [
   [join('public', 'icons', 'icon-512.png'), drawIcon(512)],
   // Maskable: mehr Rand und volle Fläche, damit die Beschneidung nichts abschneidet
   [join('public', 'icons', 'icon-maskable-512.png'), drawIcon(512, { padding: 0.2, radius: 0.5 })],
+  [join('public', 'icons', 'badge-72.png'), drawBadge(72)],
   // iOS rundet selbst ab und mag keine Transparenz
   [join('public', 'apple-touch-icon.png'), drawIcon(180, { radius: 0.0001 })],
 ]

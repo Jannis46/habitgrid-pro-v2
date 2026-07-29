@@ -1,29 +1,55 @@
 /**
  * Erinnerungs-Logik des Service Workers.
  *
- * Wird per `workbox.importScripts` in den generierten Service Worker eingebunden. Bewusst
- * einfaches JavaScript statt eines eigenen injectManifest-Setups: Das hätte drei
- * workbox-Pakete als Abhängigkeit und eine zweite tsconfig für den Worker-Kontext bedeutet —
- * für rund hundert Zeilen Ereignisbehandlung.
+ * Wird per `workbox.importScripts` in den generierten Service Worker eingebunden.
+ * ACHTUNG: Ein Syntaxfehler hier lässt `importScripts` werfen und verhindert die
+ * Installation des GESAMTEN Service Workers — samt Offline-Cache. Diese Datei wird
+ * nicht vom TypeScript-Compiler geprüft, also bei Änderungen im Browser gegenprüfen.
  *
  * WAS HIER EHRLICH GESAGT WERDEN MUSS:
  * Es gibt keinen browserübergreifenden Weg, eine lokale Benachrichtigung für eine feste
  * Uhrzeit zu planen, während die App geschlossen ist. `Notification.showTrigger` war ein
  * Chrome-Experiment und wurde wieder entfernt. Was tatsächlich funktioniert:
- *   1. App offen  -> die Seite meldet die fällige Zeit, dieser Worker zeigt die Nachricht.
- *   2. App zu     -> `periodicsync`, sofern der Browser es unterstützt (Chrome/Edge, nur bei
- *                    installierter PWA). Das Intervall bestimmt der Browser, meist stündlich
- *                    bis mehrmals täglich — die Erinnerung kann also verspätet kommen.
- *   3. Sonst      -> keine Benachrichtigung. Punktgenaue Zustellung bei geschlossener App
- *                    ginge nur über echtes Web Push mit VAPID und einem sendenden Server
+ *   1. App offen  -> die Seite meldet die fällige Zeit, dieser Worker zeigt die Meldung.
+ *   2. App zu     -> `periodicsync`, sofern der Browser es unterstützt (Chrome/Edge, nur
+ *                    bei installierter PWA). Den Zeitpunkt bestimmt der Browser.
+ *   3. Sonst      -> keine Meldung. Punktgenaue Zustellung bei geschlossener App ginge
+ *                    nur über echtes Web Push mit VAPID und einem sendenden Server
  *                    (siehe `push`-Handler unten, vorbereitet aber nicht aktiv).
- * Die Oberfläche sagt dem Nutzer genau das, statt Zuverlässigkeit zu versprechen.
  */
 
 /* eslint-env serviceworker */
 
 const DB_NAME = 'habitgrid-reminders'
 const STORE = 'kv'
+
+/**
+ * Einheitliche Darstellung aller Meldungen. Pfade bewusst ohne führenden Schrägstrich:
+ * Sie lösen gegen den Scope des Workers auf und funktionieren dadurch auch, wenn die
+ * App in einem Unterverzeichnis liegt (GitHub Pages).
+ */
+function notificationOptions(options) {
+  const { body, habitId, tag } = options
+  return {
+    body,
+    icon: 'icons/icon-192.png',
+    badge: 'icons/badge-72.png',
+    vibrate: [100, 50, 100],
+    lang: 'de',
+    tag,
+    // Ohne `renotify` ersetzt eine gleich getaggte Meldung die alte lautlos. Beim
+    // Testen sieht es dann so aus, als käme überhaupt nichts an.
+    renotify: Boolean(tag),
+    requireInteraction: false,
+    data: { habitId, url: self.registration.scope },
+    actions: habitId
+      ? [
+          { action: 'done', title: 'Erledigt' },
+          { action: 'open', title: 'Öffnen' },
+        ]
+      : [],
+  }
+}
 
 function withStore(mode, fn) {
   return new Promise((resolve, reject) => {
@@ -53,18 +79,18 @@ const pad = (n) => String(n).padStart(2, '0')
 const dayKey = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 
 /**
- * Zeigt alle Erinnerungen, deren Uhrzeit erreicht ist und die heute noch nicht gezeigt wurden.
- * Die Sperre gegen Doppelmeldungen liegt bewusst nur hier — egal ob die Seite oder
- * `periodicsync` auslöst, es gibt genau eine Stelle, die entscheidet.
+ * Zeigt alle Erinnerungen, deren Uhrzeit erreicht ist und die heute noch nicht gezeigt
+ * wurden. Die Sperre gegen Doppelmeldungen liegt bewusst nur hier — egal ob die Seite
+ * oder `periodicsync` auslöst, es gibt genau eine Stelle, die entscheidet.
  */
 async function showDueReminders() {
   const data = await idbGet('reminders')
-  if (!data || !Array.isArray(data.items)) return
+  if (!data || !Array.isArray(data.items)) return 0
 
   const now = new Date()
   const todayKey = dayKey(now)
   // Liste stammt von einem anderen Tag — dann stimmen „erledigt" und Zeitplan nicht mehr
-  if (data.date !== todayKey) return
+  if (data.date !== todayKey) return 0
 
   const shown = (await idbGet('shown')) ?? { date: todayKey, ids: [] }
   if (shown.date !== todayKey) {
@@ -73,34 +99,31 @@ async function showDueReminders() {
   }
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
-  let changed = false
+  let count = 0
 
   for (const item of data.items) {
     if (item.done || shown.ids.includes(item.habitId)) continue
-    const [h, m] = String(item.time).split(':').map(Number)
-    if (!Number.isFinite(h) || !Number.isFinite(m)) continue
-    if (h * 60 + m > nowMinutes) continue
+    const parts = String(item.time).split(':').map(Number)
+    const hours = parts[0]
+    const minutes = parts[1]
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) continue
+    if (hours * 60 + minutes > nowMinutes) continue
 
-    await self.registration.showNotification('HabitGrid Pro Reminder', {
-      body: `Zeit für dein Habit: ${item.name}! Tippe hier, um es abzuhaken.`,
-      // Ohne führenden Schrägstrich: löst gegen den Scope des Workers auf und
-      // funktioniert dadurch auch, wenn die App in einem Unterverzeichnis liegt
-      // (GitHub Pages: /repo-name/).
-      icon: 'icons/icon-192.png',
-      badge: 'icons/icon-192.png',
-      // Ein Tag pro Habit: eine erneute Meldung ersetzt die alte, statt sie zu stapeln
-      tag: `habit-${item.habitId}`,
-      data: { habitId: item.habitId },
-      actions: [
-        { action: 'done', title: 'Erledigt' },
-        { action: 'open', title: 'Öffnen' },
-      ],
-    })
+    await self.registration.showNotification(
+      'HabitGrid Pro',
+      notificationOptions({
+        body: `Zeit für dein Habit: ${item.name}! Tippe hier, um es abzuhaken.`,
+        habitId: item.habitId,
+        // Ein Tag pro Habit: eine erneute Meldung ersetzt die alte, statt zu stapeln
+        tag: `habit-${item.habitId}`,
+      }),
+    )
     shown.ids.push(item.habitId)
-    changed = true
+    count++
   }
 
-  if (changed) await idbSet('shown', shown)
+  if (count > 0) await idbSet('shown', shown)
+  return count
 }
 
 self.addEventListener('message', (event) => {
@@ -112,6 +135,32 @@ self.addEventListener('message', (event) => {
 
   if (message.type === 'FIRE_DUE') {
     event.waitUntil(showDueReminders())
+  }
+
+  /*
+   * Sofortige Testmeldung. Umgeht bewusst die Fälligkeitsprüfung und die Sperre gegen
+   * Doppelmeldungen — genau darum geht es beim Testen: Man will sehen, ob die Kette aus
+   * Berechtigung, Service Worker und Darstellung überhaupt trägt.
+   */
+  if (message.type === 'TEST_NOTIFICATION') {
+    event.waitUntil(
+      self.registration
+        .showNotification(
+          'HabitGrid Pro',
+          notificationOptions({
+            body: 'Test bestanden — so sehen deine Erinnerungen aus.',
+            tag: `test-${Date.now()}`,
+          }),
+        )
+        .then(() => event.source?.postMessage({ type: 'TEST_NOTIFICATION_RESULT', ok: true }))
+        .catch((error) =>
+          event.source?.postMessage({
+            type: 'TEST_NOTIFICATION_RESULT',
+            ok: false,
+            error: String(error && error.message ? error.message : error),
+          }),
+        ),
+    )
   }
 
   // Beim Start fragt die Seite ab, ob über eine Benachrichtigung abgehakt wurde.
@@ -132,13 +181,14 @@ self.addEventListener('periodicsync', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const habitId = event.notification.data?.habitId
+  const habitId = event.notification.data && event.notification.data.habitId
   const checkedOff = event.action === 'done'
 
   event.waitUntil(
     (async () => {
-      // „Erledigt" direkt aus der Meldung: Der Worker kann den localStorage der Seite nicht
-      // schreiben, also wird die Absicht hinterlegt und beim nächsten Öffnen angewandt.
+      // „Erledigt" direkt aus der Meldung: Der Worker kann den localStorage der Seite
+      // nicht schreiben, hinterlegt die Absicht deshalb und die App wendet sie beim
+      // nächsten Öffnen an.
       if (checkedOff && habitId) {
         const intents = (await idbGet('intents')) ?? []
         if (!intents.includes(habitId)) {
@@ -154,35 +204,29 @@ self.addEventListener('notificationclick', (event) => {
         open.postMessage({ type: 'OPEN_HABIT', habitId, checkedOff })
         return
       }
-      // Scope statt Wurzelpfad — sonst landet der Klick bei einem Unterverzeichnis-Deployment
-      // auf der Domain-Wurzel statt in der App.
-      await self.clients.openWindow(
-        `${self.registration.scope}#/app${habitId ? `?habit=${habitId}` : ''}`,
-      )
+      // Scope statt Wurzelpfad — sonst landet der Klick bei einem Unterverzeichnis-
+      // Deployment auf der Domain-Wurzel statt in der App.
+      const target = `${self.registration.scope}#/app${habitId ? `?habit=${habitId}` : ''}`
+      await self.clients.openWindow(target)
     })(),
   )
 })
 
 /**
- * Vorbereitung für echtes Web Push. Aktiv wird das erst, wenn ein Server mit VAPID-Schlüsseln
- * Nachrichten sendet — siehe README. Bis dahin läuft dieser Handler nie an.
+ * Vorbereitung für echtes Web Push. Aktiv wird das erst, wenn ein Server mit
+ * VAPID-Schlüsseln Nachrichten sendet — siehe README. Bis dahin läuft er nie an.
  */
 self.addEventListener('push', (event) => {
-  let payload = { title: 'HabitGrid Pro Reminder', body: 'Zeit für dein Habit!' }
+  let payload = { title: 'HabitGrid Pro', body: 'Zeit für dein Habit!' }
   try {
-    if (event.data) payload = { ...payload, ...event.data.json() }
+    if (event.data) payload = Object.assign(payload, event.data.json())
   } catch {
     // Nicht-JSON-Nutzlast: Standardtext verwenden statt die Meldung zu verschlucken
   }
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      // Ohne führenden Schrägstrich: löst gegen den Scope des Workers auf und
-      // funktioniert dadurch auch, wenn die App in einem Unterverzeichnis liegt
-      // (GitHub Pages: /repo-name/).
-      icon: 'icons/icon-192.png',
-      badge: 'icons/icon-192.png',
-      data: { habitId: payload.habitId },
-    }),
+    self.registration.showNotification(
+      payload.title,
+      notificationOptions({ body: payload.body, habitId: payload.habitId, tag: 'push' }),
+    ),
   )
 })

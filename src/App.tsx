@@ -10,6 +10,7 @@ import { AGB, Datenschutz, Impressum, Widerruf } from './pages/Legal'
 import { Success } from './pages/Success'
 import { Upgrade } from './pages/Upgrade'
 import { WidgetPage } from './pages/Widget'
+import { SettingsPage } from './pages/Settings'
 
 // ponytail: Hash-Routing statt einer Router-Abhängigkeit — sieben statische Routen,
 // keine Parameter, keine verschachtelten Layouts.
@@ -17,6 +18,7 @@ const ROUTES: Record<string, () => ReactElement> = {
   app: Dashboard,
   upgrade: Upgrade,
   widget: WidgetPage,
+  einstellungen: SettingsPage,
   login: AuthPage,
   impressum: Impressum,
   datenschutz: Datenschutz,
@@ -50,7 +52,7 @@ function Router() {
   }
 
   // Weder App noch Freischaltung ohne Konto — der Pro-Status hängt am Konto
-  if (['app', 'upgrade', 'widget'].includes(route) && !user) return <AuthPage />
+  if (['app', 'upgrade', 'widget', 'einstellungen'].includes(route) && !user) return <AuthPage />
 
   const Page = ROUTES[route]
   return Page ? <Page /> : <Landing />

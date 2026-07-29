@@ -177,6 +177,83 @@ export async function drainCheckoffIntents(): Promise<string[]> {
   })
 }
 
+/* -------------------------------- Diagnose ---------------------------------- */
+
+export type NotificationDiagnosis = {
+  permission: NotificationPermission | 'nicht verfügbar'
+  serviceWorker: 'aktiv' | 'wartet' | 'wird installiert' | 'nicht registriert' | 'nicht unterstützt'
+  standalone: boolean
+  isIos: boolean
+  /** iOS zeigt Mitteilungen ausschließlich in der installierten Web-App */
+  iosNeedsInstall: boolean
+  backgroundDelivery: boolean
+}
+
+export async function diagnose(): Promise<NotificationDiagnosis> {
+  const ios = isIos()
+  let sw: NotificationDiagnosis['serviceWorker'] = 'nicht unterstützt'
+  if ('serviceWorker' in navigator) {
+    const registration = await navigator.serviceWorker.getRegistration()
+    if (!registration) sw = 'nicht registriert'
+    else if (registration.active) sw = 'aktiv'
+    else if (registration.waiting) sw = 'wartet'
+    else sw = 'wird installiert'
+  }
+  return {
+    permission: 'Notification' in window ? Notification.permission : 'nicht verfügbar',
+    serviceWorker: sw,
+    standalone: isStandalone(),
+    isIos: ios,
+    iosNeedsInstall: ios && !isStandalone(),
+    backgroundDelivery: 'periodicSync' in ((await worker()) ?? {}),
+  }
+}
+
+/**
+ * Löst sofort eine Testmeldung aus.
+ *
+ * Bewusst über den Service Worker statt über `new Notification()`: In einer installierten
+ * PWA — und auf iOS grundsätzlich — ist der Konstruktor nicht verfügbar. Nur der Weg über
+ * `registration.showNotification` funktioniert überall dort, wo es darauf ankommt.
+ */
+export async function triggerInstantTestNotification(): Promise<{ ok: boolean; error?: string }> {
+  if (notificationState() === 'ios-install') {
+    return {
+      ok: false,
+      error:
+        'Auf iOS funktionieren Push-Mitteilungen nur, wenn HabitGrid Pro zum Home-Bildschirm hinzugefügt wurde.',
+    }
+  }
+  if (Notification.permission !== 'granted') {
+    const state = await requestPermission()
+    if (state !== 'granted') {
+      return { ok: false, error: 'Ohne erteilte Berechtigung kann keine Meldung erscheinen.' }
+    }
+  }
+
+  const registration = await worker()
+  if (!registration) return { ok: false, error: 'Kein Service Worker registriert.' }
+
+  // Antwort des Workers abwarten, damit ein Fehler nicht unbemerkt verpufft
+  const answer = new Promise<{ ok: boolean; error?: string }>((resolve) => {
+    const onMessage = (event: MessageEvent) => {
+      if (event.data?.type !== 'TEST_NOTIFICATION_RESULT') return
+      navigator.serviceWorker.removeEventListener('message', onMessage)
+      resolve({ ok: event.data.ok, error: event.data.error })
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage)
+    setTimeout(() => {
+      navigator.serviceWorker.removeEventListener('message', onMessage)
+      resolve({ ok: false, error: 'Der Service Worker hat nicht geantwortet.' })
+    }, 3000)
+  })
+
+  const target = registration.active ?? navigator.serviceWorker.controller
+  if (!target) return { ok: false, error: 'Service Worker ist noch nicht aktiv — Seite neu laden.' }
+  target.postMessage({ type: 'TEST_NOTIFICATION' })
+  return answer
+}
+
 /** Liest die Habit-ID aus einem Deep Link wie `#/app?habit=abc`. */
 export function habitFromHash(hash = window.location.hash): string | null {
   const query = hash.split('?')[1]
