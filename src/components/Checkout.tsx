@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import { Check, Ticket } from 'lucide-react'
 import { isValidCoupon, unlockWithCoupon } from '../lib/pro'
 import { confetti } from '../lib/confetti'
+import { useAuth } from '../auth/AuthContext'
 
 export const PRICE = '9,99 €'
 const PAYMENT_LINK = import.meta.env.VITE_STRIPE_PAYMENT_LINK ?? ''
@@ -27,6 +28,7 @@ export function CheckoutButton({
   label?: string
   onUnlocked?: () => void
 }) {
+  const { user } = useAuth()
   const dialog = useRef<HTMLDialogElement>(null)
   const [terms, setTerms] = useState(false)
   const [waiver, setWaiver] = useState(false)
@@ -77,9 +79,22 @@ export function CheckoutButton({
     window.location.href = PAYMENT_LINK
   }
 
+  /*
+   * Ohne Konto führt der Kaufknopf zur Registrierung, nicht in den Bestelldialog.
+   * Der Pro-Status hängt am Konto — wer ohne eines kauft, hätte eine Freischaltung,
+   * die an einen einzelnen Browser gebunden ist und beim Gerätewechsel verschwindet.
+   */
+  const open = () => {
+    if (!user) {
+      window.location.hash = '#/login'
+      return
+    }
+    dialog.current?.showModal()
+  }
+
   return (
     <>
-      <button className={className} onClick={() => dialog.current?.showModal()}>
+      <button className={className} onClick={open}>
         {label} — {PRICE}
       </button>
 

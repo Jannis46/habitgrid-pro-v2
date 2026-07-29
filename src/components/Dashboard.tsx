@@ -506,14 +506,14 @@ const HabitCard = memo(function HabitCard({
 
         <div className="no-print flex shrink-0 gap-1">
           <button
-            className="btn btn-ghost px-2 py-1.5"
+            className="btn btn-ghost btn-icon px-2 py-1.5"
             onClick={() => onEdit(habit)}
             aria-label={`${habit.name} bearbeiten`}
           >
             <Pencil size={15} />
           </button>
           <button
-            className="btn btn-ghost px-2 py-1.5"
+            className="btn btn-ghost btn-icon px-2 py-1.5"
             aria-label={`${habit.name} löschen`}
             onClick={() => onRemove(habit)}
           >

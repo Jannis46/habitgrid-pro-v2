@@ -380,10 +380,20 @@ dialog[open] {
 
 /* ────────────────────────────── Bento-Raster ────────────────────────────── */
 
+/*
+ * Einspaltig auf dem Telefon. Zwei Spalten ergaben dort 166 px breite Kacheln —
+ * darin ist Fließtext nicht mehr lesbar, egal wie gut das Raster aussieht.
+ */
 .bento {
   display: grid;
   gap: 0.75rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 640px) {
+  .bento {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 900px) {
@@ -408,10 +418,33 @@ dialog[open] {
   }
 }
 
-@media (max-width: 899px) {
+@media (min-width: 640px) and (max-width: 899px) {
   .span-6,
   .span-4 {
     grid-column: span 2;
+  }
+}
+
+/*
+ * Touch-Ziele nach den Apple Human Interface Guidelines: mindestens 44 × 44 Punkt.
+ * Ausgelöst über `pointer: coarse` statt über die Bildschirmbreite — entscheidend ist
+ * der Finger, nicht die Fenstergröße. Ein Tablet mit 1024 px braucht die Fläche
+ * genauso, ein schmales Desktop-Fenster nicht.
+ */
+@media (pointer: coarse), (max-width: 767px) {
+  .btn,
+  .segment button,
+  .checkin {
+    min-height: 44px;
+  }
+
+  /* Knöpfe, die nur ein Symbol tragen, brauchen die Fläche auch in der Breite */
+  .btn-icon {
+    min-width: 44px;
+  }
+
+  .segment button {
+    padding-inline: 0.85rem;
   }
 }
 } /* Ende @layer components */

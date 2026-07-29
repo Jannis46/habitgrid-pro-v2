@@ -30,11 +30,14 @@ export function AuthPage() {
     setBusy(true)
     try {
       if (mode === 'login') {
+        // Wiederkehrende Nutzer wollen zu ihren Habits, nicht zu einem Angebot
         await signIn(email, password)
         window.location.hash = '#/app'
       } else if (mode === 'register') {
+        // Frisch registriert: erst jetzt ist die Freischaltung sinnvoll, weil sie ab
+        // hier an einem Konto hängt und nicht an diesem einen Browser
         await signUp(name, email, password)
-        window.location.hash = '#/app'
+        window.location.hash = '#/upgrade'
       } else {
         setInfo(await resetPassword(email, newPassword || undefined))
       }

@@ -296,22 +296,31 @@ export function StreakCrystal({
   return (
     <div
       ref={host}
-      className={`grid w-full place-items-center ${
+      className={`relative w-full overflow-hidden ${
         showcase ? 'h-[300px] sm:h-[380px] lg:h-[460px]' : 'h-[190px] sm:h-[230px]'
       }`}
     >
-      <div className="will-change-transform">
+      {/*
+        Absolut positioniert mit `inset-0`, damit dieser Kasten eine definite Höhe hat.
+        Ohne sie löst `height: 100%` am SVG gegen ein Elternelement mit automatischer
+        Höhe auf, greift nicht — und das SVG wuchs auf 342 px in einem 190-px-Kasten.
+      */}
+      <div
+        className="absolute inset-0 grid place-items-center will-change-transform"
+      >
         <svg
           ref={svg}
           viewBox="-150 -150 300 300"
-          className="h-[260px] w-[260px] cursor-grab touch-none select-none active:cursor-grabbing sm:h-[320px] sm:w-[320px]"
+          preserveAspectRatio="xMidYMid meet"
+          className="cursor-grab touch-none select-none active:cursor-grabbing"
+          style={{ height: '100%', width: 'auto', aspectRatio: '1 / 1', maxWidth: '100%' }}
           role="img"
           aria-label={
             showcase
               ? 'Streak-Kristall in der höchsten Stufe — zum Drehen ziehen'
               : `Streak-Kristall, Stufe ${tier + 1} von 3, aktuelle Serie ${streak} Tage`
           }
-          style={{ opacity: ready ? 1 : 0, transition: 'opacity 0.4s ease' }}
+          opacity={ready ? 1 : 0}
         >
           <defs>
             <radialGradient id={glowId}>
