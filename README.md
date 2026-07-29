@@ -131,6 +131,42 @@ Einlösen — sonst verschwindet die Paywall mitsamt Dialog aus dem Baum.
 
 Code ändern: `COUPON_CODE` in `src/lib/pro.ts`.
 
+## Installation auf Android — und die Play-Protect-Warnung
+
+**Über Chrome installieren.** Menü ⋮ → „App installieren". Chrome lässt die WebAPK von
+Google bauen und signieren; Play Protect beanstandet sie nicht.
+
+Andere Browser gehen andere Wege. Samsung Internet und einige Drittanbieter erzeugen
+eigene Pakete, die als Installation aus unbekannter Quelle gelten — daher die Meldung
+„für eine ältere Android-Version entwickelt". **Das Web App Manifest kann daran nichts
+ändern**, es kennt kein Feld für `targetSdkVersion`. Diese Angabe steckt ausschließlich in
+einer APK.
+
+### Echte APK bauen (optional)
+
+Wer die App außerhalb des Browsers verteilen will, baut eine Trusted Web Activity. Die
+Konfiguration liegt in `twa-manifest.json` mit `targetSdkVersion 34` — dem Wert, der die
+Warnung beseitigt.
+
+```bash
+npm i -g @bubblewrap/cli && bubblewrap init --manifest https://jannis46.github.io/habitgrid-pro-v2/manifest.webmanifest
+```
+
+```bash
+bubblewrap build
+```
+
+Zwei Dinge danach nicht vergessen:
+
+1. Den beim ersten Bauen erzeugten Signaturschlüssel sichern. Geht er verloren, lässt sich
+   die App nie wieder aktualisieren — auch nicht mit einem neuen Schlüssel.
+2. Den SHA-256-Fingerabdruck in `public/.well-known/assetlinks.json` eintragen, sonst
+   startet die App mit sichtbarer Adressleiste statt im Vollbild:
+
+```bash
+keytool -list -v -keystore android.keystore -alias android
+```
+
 ## Deployment
 
 Der Build ist statisch und läuft auf jedem Static Host.
