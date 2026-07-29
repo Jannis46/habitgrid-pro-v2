@@ -439,8 +439,16 @@ dialog[open] {
   }
 
   /* Knöpfe, die nur ein Symbol tragen, brauchen die Fläche auch in der Breite */
-  .btn-icon {
+  .btn-icon,
+  .touch-target {
     min-width: 44px;
+  }
+
+  /* Kleine Symbolknöpfe im Fließtext: Trefferfläche vergrößern, ohne das Zeichen
+     aufzublasen — sonst zerreißt es die Zeile, in der es sitzt. */
+  .touch-target {
+    min-height: 44px;
+    margin-block: -12px;
   }
 
   .segment button {

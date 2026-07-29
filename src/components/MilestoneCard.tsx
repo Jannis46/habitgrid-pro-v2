@@ -57,7 +57,7 @@ function EvidenceButton({ milestone }: { milestone: Milestone }) {
       <button
         onClick={() => dialog.current?.showModal()}
         aria-label={`Wissenschaftliche Grundlage zu „${milestone.title}" anzeigen`}
-        className="ml-1 inline-grid h-5 w-5 place-items-center rounded-full align-middle transition-colors"
+        className="touch-target ml-1 inline-grid h-5 w-5 place-items-center rounded-full align-middle transition-colors"
         style={{ background: 'var(--surface-2)', color: 'var(--muted)' }}
       >
         <Info size={11} aria-hidden />

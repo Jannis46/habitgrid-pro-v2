@@ -59,6 +59,12 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
+          // Ein neuer Worker übernimmt sofort und wirft die alten Caches weg. Ohne das
+          // bleibt eine installierte App auf dem Stand des Tages hängen, an dem sie
+          // installiert wurde — Layoutfehler inklusive, die längst behoben sind.
+          skipWaiting: true,
+          clientsClaim: true,
+          cleanupOutdatedCaches: true,
           // Offline First: Der App-Shell kommt aus dem Cache, Updates laufen im Hintergrund nach.
           runtimeCaching: [
             {

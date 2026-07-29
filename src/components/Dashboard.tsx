@@ -199,11 +199,34 @@ export function Dashboard() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 pb-24 sm:px-6">
-      <header className="no-print flex flex-wrap items-center justify-between gap-3 py-5">
-        <div>
-          <a href="#/" className="logo-hover mb-1.5 inline-block" aria-label="Zur Startseite">
+      {/*
+        Mobile Topbar: Marke und Bedienelemente in einer Zeile, darunter die Anrede.
+        Zuvor umbrach die Knopfreihe auf dem Telefon in zwei Zeilen und schob den
+        eigentlichen Inhalt nach unten. „Drucken" ist dort ausgeblendet — ein
+        Druckdialog auf dem Handy ist kein Anwendungsfall, sondern eine Sackgasse.
+      */}
+      <header className="no-print py-4">
+        <div className="flex items-center justify-between gap-2">
+          <a href="#/" className="logo-hover" aria-label="Zur Startseite">
             <Wordmark size={20} />
           </a>
+          <div className="flex items-center gap-2">
+            <ThemeToggle compact />
+            <button
+              className="btn btn-ghost btn-icon hidden sm:inline-flex"
+              onClick={() => window.print()}
+              title="Matrix drucken"
+            >
+              <Printer size={16} aria-hidden /> Drucken
+            </button>
+            <button className="btn btn-ghost btn-icon" onClick={signOut} title="Abmelden">
+              <LogOut size={16} aria-hidden />
+              <span className="hidden sm:inline">Abmelden</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4">
           <h1 className="text-2xl font-semibold tracking-tight">
             Hallo {user?.name ?? 'du'}
             {pro && (
@@ -218,16 +241,6 @@ export function Dashboard() {
           <p className="text-sm" style={{ color: 'var(--muted)' }}>
             {formatLong(day)} · {score.done} von {score.planned} erledigt
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <ThemeToggle compact />
-          <button className="btn btn-ghost" onClick={() => window.print()} title="Matrix drucken">
-            <Printer size={16} /> Drucken
-          </button>
-          <button className="btn btn-ghost" onClick={signOut}>
-            <LogOut size={16} /> Abmelden
-          </button>
         </div>
       </header>
 

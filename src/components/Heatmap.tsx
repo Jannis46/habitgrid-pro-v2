@@ -65,8 +65,21 @@ export function Heatmap({
   const gap = Math.max(2, Math.round(cell / 5))
 
   return (
-    <div className="overflow-x-auto pb-1">
-      <div style={{ display: 'inline-flex', flexDirection: 'column', gap }}>
+    /*
+     * Eigener Scroll-Container mit Mindestbreite am Raster: Auf dem Telefon soll die
+     * Matrix gewischt werden, nicht zusammengedrückt. Die Mindestbreite ist Absicherung —
+     * `inline-flex` schrumpft hier zwar ohnehin nicht, aber ein späterer Umbau auf ein
+     * anderes Anzeigemodell würde die Zellen sonst still verzerren.
+     */
+    <div className="-mx-1 w-full overflow-x-auto px-1 pb-1" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <div
+        style={{
+          display: 'inline-flex',
+          flexDirection: 'column',
+          gap,
+          minWidth: columns.length * (cell + gap),
+        }}
+      >
         <div style={{ display: 'flex', gap }}>
           {monthMarks.map((label, i) => (
             <span
