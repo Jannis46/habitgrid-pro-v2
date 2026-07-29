@@ -41,6 +41,7 @@ import { InstallPrompt } from './InstallPrompt'
 import { ReminderSetup } from './ReminderSetup'
 import { CheckoutButton } from './Checkout'
 import { MilestoneCard } from './MilestoneCard'
+import { WidgetBanner } from './HomeScreenWidgetGenerator'
 import { Wordmark } from './Logo'
 
 // three.js liegt in einem eigenen Chunk und wird nur geladen, wenn das Widget wirklich
@@ -246,6 +247,7 @@ export function Dashboard() {
 
       <InstallPrompt />
       <ReminderSetup hasTimedHabits={hasTimedHabits} />
+      {active.length > 0 && <WidgetBanner />}
 
       {notice && (
         <p aria-live="polite" className="no-print mt-4 text-sm" style={{ color: 'var(--muted)' }}>

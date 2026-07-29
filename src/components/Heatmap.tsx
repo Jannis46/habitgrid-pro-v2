@@ -19,7 +19,13 @@ export function Heatmap({
   habit,
   log,
   weeks = 53,
-  cell = 12,
+  /**
+   * Auf Touch-Geräten größere Zellen: 12 px trifft man mit dem Finger nicht.
+   * 44 px pro Zelle wären keine Lösung — die Jahresmatrix wäre 2300 px breit und
+   * damit als Überblick wertlos. 16 px plus Wischen ist der brauchbare Kompromiss;
+   * für einen einzelnen Tag gibt es die Tagesansicht mit voller Trefferfläche.
+   */
+  cell = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches ? 16 : 12,
   onPick,
 }: {
   habit: Habit
